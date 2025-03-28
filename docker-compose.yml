@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql_server
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: real_estate
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    command: --secure-file-priv="" --local-infile=1
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./csv:/var/lib/mysql-files
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
+
+  data_loader:
+    image: mysql:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./csv:/var/lib/mysql-files
+      - ./load_data.sh:/load_data.sh
+    entrypoint: ["/bin/bash", "/load_data.sh"]
+
+volumes:
+  mysql_data:
